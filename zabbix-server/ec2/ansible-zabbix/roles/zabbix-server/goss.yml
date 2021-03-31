@@ -1,0 +1,79 @@
+package:
+  {{ if eq .Vars.ansible_facts.ansible_os_family "RedHat" }}
+  MySQL-python:
+    installed: true
+  {{ if eq .Vars.ansible_facts.ansible_distribution_major_version "6" }}
+  python-pip:
+    installed: true
+  {{ else }}
+  {{ end }}
+  python-devel:
+    installed: true
+  gcc:
+    installed: true
+  gcc-c++:
+    installed: true
+  make:
+    installed: true
+  openssl-devel:
+    installed: true
+  libxml2-devel:
+    installed: true
+  net-snmp-devel:
+    installed: true
+  libevent-devel:
+    installed: true
+  pcre-devel:
+    installed: true
+  libcurl-devel:
+    installed: true
+  openldap-devel:
+    installed: true
+  {{ end }}
+  {{ if eq .Vars.ansible_facts.ansible_os_family "Debian" }}
+  python-mysqldb:
+    installed: true
+  python-pip:
+    installed: true
+  python-dev:
+    installed: true
+  gcc:
+    installed: true
+  g++:
+    installed: true
+  make:
+    installed: true
+  libssl-dev:
+    installed: true
+  libmysql++-dev:
+    installed: true
+  libxml2-dev:
+    installed: true
+  libsnmp-dev:
+    installed: true
+  libevent-dev:
+    installed: true
+  libpcre3-dev:
+    installed: true
+  libcurl4-openssl-dev:
+    installed: true
+  libldap2-dev:
+    installed: true
+  {{ end }}
+
+service:
+  zabbix-server:
+    enabled: true
+    running: true
+
+file:
+  /etc/zabbix/zabbix_server.conf:
+    exists: true
+  /etc/zabbix/web/zabbix.conf.php:
+    exists: true
+  /usr/sbin/zabbix_server:
+    exists: true
+  /usr/share/zabbix/web/conf/zabbix.conf.php:
+    exists: true
+    filetype: symlink
+    linked-to: /etc/zabbix/web/zabbix.conf.php

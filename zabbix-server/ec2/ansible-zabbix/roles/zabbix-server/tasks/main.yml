@@ -1,0 +1,287 @@
+---
+
+  - name: Install Zabbix Release
+    yum:
+      name: "{{ url_zabbix_server[zabbix_version] }}"
+      state: present
+    tags:
+      - zabbix-server
+
+  - name: Enable zabbix-frontend
+    shell: yum-config-manager --enable zabbix-frontend
+    when: ansible_architecture == "x86_64" and zabbix_version == "5.0"
+
+  - name: Enable centos-release-scl
+    shell: yum-config-manager --add-repo=https://copr.fedoraproject.org/coprs/rhscl/centos-release-scl/repo/epel-7/rhscl-centos-release-scl-epel-7.repo
+    when: ansible_architecture == "x86_64"
+    
+  - name: Install Zabbix packeges 4.4
+    yum:
+      name: "{{ packeges }}"
+    vars:
+      packeges:
+      - zabbix-server-mysql
+      - zabbix-web-mysql
+      - zabbix-agent
+      - zabbix-get
+    tags:
+      - zabbix-server
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4"
+
+  - name: Install Zabbix packeges 5.0
+    yum:
+      name: "{{ packeges }}"
+    vars:
+      packeges:
+      - zabbix-server-mysql
+      - zabbix-agent
+      - zabbix-get
+      - centos-release-scl
+    tags:
+      - zabbix-server
+    when: ansible_architecture == "x86_64" and zabbix_version == "5.0"
+
+  - name: Install Zabbix packeges 5.0
+    yum:
+      name: "{{ packeges }}"
+    vars:
+      packeges:
+      - zabbix-web-mysql-scl
+      - zabbix-apache-conf-scl
+    tags:
+      - zabbix-server
+    when: ansible_architecture == "x86_64" and zabbix_version == "5.0"
+
+  - name: Install Zabbix packeges
+    yum:
+      name: "{{ packeges }}"
+    vars:
+      packeges:
+      - zabbix40-server-mysql
+      - zabbix40-web-mysql
+      - zabbix40-agent
+    tags:
+      - zabbix-server
+    when: ansible_architecture == "aarch64" 
+
+  - name: Start rh-php72-php-fpm
+    service:
+      name: rh-php72-php-fpm
+      state: restarted
+      enabled: yes
+    when: ansible_architecture == "x86_64" and zabbix_version == "5.0"
+
+  - name: Check if MySQL started
+    service:
+      name: mysqld
+      state: started
+      enabled: yes
+
+  - name: Creates Zabbix server MySQL user
+    mysql_user:
+      name: "{{ zbx_db_user }}"
+      password: "{{ zbx_db_pass }}"
+      priv: "{{ zbx_db_name }}.*:ALL"
+      state: present
+    tags:
+      - zabbix-server
+    when: zbx_db_url == "localhost"
+
+  - name: Create a new database for Zabbix Server
+    mysql_db:
+      name: "{{ zbx_db_name }}"
+      state: present
+      encoding: utf8
+      collation: utf8_bin
+      login_host: "{{ zbx_db_url }}"
+      login_user: "{{ zbx_db_user }}"
+      login_password: "{{ zbx_db_pass }}"
+    tags:
+      - zabbix-server
+
+  - name: Copy schema DB
+    shell: cp /usr/share/doc/zabbix-server-mysql-*/create.sql.gz /tmp
+    tags:
+      - zabbix-server
+
+  - name: Import database Zabbix
+    mysql_db:
+      name: "{{ zbx_db_name }}"
+      state: import
+      target: /tmp/create.sql.gz
+      login_host: "{{ zbx_db_url }}"
+      login_user: "{{ zbx_db_user }}"
+      login_password: "{{ zbx_db_pass }}"
+    ignore_errors: true
+    tags:
+      - zabbix-server
+      
+  - name: Configure Zabbix Server
+    template:
+      src: zabbix_server.conf.j2
+      dest: /etc/zabbix/zabbix_server.conf
+      mode: '0644'
+    notify:
+      - restart zabbix-server
+    tags:
+      - zabbix-server
+
+  - name: Configure Zabbix Server Web
+    template:
+      src: zabbix.conf.php.j2
+      dest: /etc/zabbix/web/zabbix.conf.php
+      mode: '0644'
+    tags:
+      - zabbix-server
+
+  - name: Configure Zabbix Agent
+    template:
+      src: zabbix_agentd.conf.j2
+      dest: /etc/zabbix/zabbix_agentd.conf
+      mode: '0644'
+    notify:
+      - restart zabbix-agent
+    tags:
+      - zabbix-server
+
+  - name: Force all notified handlers to run at this point not waiting for normal sync points
+    meta: flush_handlers
+
+  - name: restart php-fpm
+    service:
+      name: php-fpm
+      state: restarted
+      enabled: yes
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4"
+
+  - name: Make sure php service is running
+    systemd:
+      name: rh-php72-php-fpm
+      state: started
+      enabled: yes
+    when: ansible_architecture == "x86_64" and zabbix_version == "5.0"
+
+  - name: Copy php.zabbix.conf template 
+    template:
+      src: templates/zabbix-php.conf.j2
+      dest: /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+    when: ansible_architecture == "x86_64" and zabbix_version == "5.0"
+
+  - name: restart php
+    service:
+      name: rh-php72-php-fpm
+      state: restarted
+    when: ansible_architecture == "x86_64" and zabbix_version == "5.0"
+
+  - name: restart nginx
+    service:
+      name: nginx
+      state: restarted
+      enabled: yes
+
+  - name: Get authentication token Zabbix
+    uri:
+      url: '{{ url_zabbix_api }}'
+      body_format: json
+      headers:
+        Content-type: application/json
+      body: 
+        jsonrpc: "2.0"
+        method: user.login
+        id: 1
+        auth: null
+        params: 
+          user: Admin
+          password: zabbix
+      return_content: yes
+    register: auth
+
+  - debug:
+      msg: '{{ (auth | json_query("json.result")) or (auth | json_query("json.error.data")) }}'
+
+  - name: Get authentication token Zabbix
+    uri:
+      url: '{{ url_zabbix_api }}'
+      body_format: json
+      headers:
+        Content-type: application/json
+      body: 
+        jsonrpc: "2.0"
+        method: user.login
+        id: 1
+        auth: null
+        params: 
+          user: Admin
+          password: '{{ pass_admin }}'
+      return_content: yes
+    when: '"password is incorrect" in auth.json.error.data'
+    ignore_errors: true
+    register: auth2
+
+  - debug:
+      msg: '{{ (auth2 | json_query("json.result")) or (auth2 | json_query("json.error.data")) }}'
+
+  - name: Register of item server.status
+    uri:
+      url: '{{ url_zabbix_api }}'
+      body_format: json
+      headers:
+        Content-type: application/json
+      body: 
+        jsonrpc: "2.0"
+        method: item.create
+        id: 1
+        auth: '{{ (auth | json_query("json.result")) or (auth2 | json_query("json.result"))}}'
+        params:
+          name: Status Zabbix Server
+          key_: server.status
+          hostid: 10084
+          type: 0
+          value_type: 0
+          interfaceid: 1
+          delay: 30
+      return_content: yes
+    register: id_item
+
+  - debug:
+      msg: '{{ (id_item | json_query("json.result.itemids[0]")) or (id_item | json_query("json.error.data")) }}'
+  - name: Get triggerid
+    uri:
+      url: '{{ url_zabbix_api }}'
+      body_format: json
+      headers:
+        Content-type: application/json
+      body: 
+        jsonrpc: "2.0"
+        method: trigger.get
+        id: 1
+        auth: '{{ (auth | json_query("json.result")) or (auth2 | json_query("json.result"))}}'
+        params:
+          templateids: "10050"
+          filter: 
+            description: "Zabbix agent is not available (for {$AGENT.TIMEOUT})"
+    register: trigger 
+
+  - set_fact:
+      triggerid: "{{ trigger.json.result | map(attribute='triggerid') | list }}"
+  - debug:
+      msg: '{{ triggerid[0] }}'
+
+  - name: Trigger Update para disaster
+    uri:
+      url: '{{ url_zabbix_api }}'
+      body_format: json
+      headers:
+        Content-type: application/json
+      body: 
+        jsonrpc: "2.0"
+        method: trigger.update
+        id: 1
+        auth: '{{ (auth | json_query("json.result")) or (auth2 | json_query("json.result"))}}'
+        params:
+          triggerid: '{{ triggerid[0] }}'
+          priority: '5'
+    register: trigger_update
+
+  - debug:
+      msg: '{{ trigger_update.json }}' 

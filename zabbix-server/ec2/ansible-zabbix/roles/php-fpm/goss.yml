@@ -1,0 +1,39 @@
+---
+  file:
+    {{ if eq .Vars.ansible_facts.ansible_os_family "RedHat" }}
+    /etc/opt/remi/php70/php-fpm.conf:
+      exists: true
+    /etc/opt/remi/php70/php-fpm.d/www.conf:
+      exists: true
+      contains:
+        - /listen.=.127\.0\.0\.1:9000/
+        - /listen\.allowed_clients.=.127\.0\.0\.1/
+    {{ end }}
+    {{ if eq .Vars.ansible_facts.ansible_os_family "Debian" }}
+    /etc/php/7.0/fpm/pool.d/www.conf:
+      exists: true
+      contains:
+        - /listen.=.127\.0\.0\.1:9000/
+        - /listen\.allowed_clients.=.127\.0\.0\.1/
+    /etc/php/7.0/fpm/php-fpm.conf:
+      exists: true
+    {{ end }}
+
+  port:
+    tcp:9000:
+      listening: true
+      ip:
+        - 127.0.0.1
+
+  service:
+    {{ if eq .Vars.ansible_facts.ansible_os_family "Debian" }}
+    php7.0-fpm:
+      enabled: true
+      running: true
+    {{ end }}
+    {{ if eq .Vars.ansible_facts.ansible_os_family "RedHat" }}
+    php70-php-fpm:
+      enabled: true
+      running: true
+    {{ end }}
+...

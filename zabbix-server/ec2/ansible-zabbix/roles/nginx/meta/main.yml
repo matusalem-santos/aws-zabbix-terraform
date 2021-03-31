@@ -1,0 +1,3 @@
+---
+dependencies:
+  - { role: php-fpm, when: nginx_php_enabled, tags: nginx }

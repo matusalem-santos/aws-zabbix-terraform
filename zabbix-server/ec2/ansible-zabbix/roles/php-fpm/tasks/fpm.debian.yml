@@ -1,0 +1,79 @@
+---
+  - name: Install apt-transport-https (Debian)
+    apt:
+      name: apt-transport-https
+      state: latest
+      update_cache: yes
+    tags: php-fpm
+
+  - name: Check if php is already installed (Debian)
+    shell: >
+      dpkg --get-selections | grep -E [^de]install | grep php | awk '{print $1}'
+    args:
+      warn: false
+    register: php_installed_version_debian
+    tags: php-fpm
+
+  - name: trying to remove old versions (Debian)
+    package:
+      name: "{{ item }}"
+      state: absent
+    with_items:
+      - "{{ php_installed_version_debian.stdout.splitlines() | list }}"
+    ignore_errors: true
+    tags: php-fpm
+
+  - name: Adding PHP snapshot repository public key
+    shell: gpg --keyserver pgp.key-server.io --recv-key AED4B06F473041FA && gpg --export --armor AED4B06F473041FA | sudo apt-key add -
+    tags: php-fpm
+
+  - name: Adding PHP snapshot repository public key
+    shell: gpg --keyserver pgp.key-server.io --recv-key 9FED2BCBDCD29CDF762678CBAED4B06F473041FA && gpg --export --armor 9FED2BCBDCD29CDF762678CBAED4B06F473041FA | sudo apt-key add -
+    tags: php-fpm
+
+
+  - name: Install PHP snapshot repository (Debian)
+    apt_repository:
+      filename: php_repo
+      repo: deb http://snapshot.debian.org/archive/debian/{{ debian_package[php_set_version]["repo_date"] }}/ unstable main
+      update_cache: no
+      validate_certs: no
+      state: present
+    tags: php-fpm
+
+  - name: Ignoring repository expire date
+    shell: apt-get -o Acquire::Check-Valid-Until=false update
+    tags: php-fpm
+
+  - name: Install php packages
+    apt:
+      name: "{{ item }}"
+      allow_unauthenticated: yes
+      autoclean: yes
+    with_items:
+      - "{{ packages[package_name] }}"
+    tags: php-fpm
+    notify:
+      - restart php-fpm for Debian
+
+  - name: Ensure /var/run/php exists
+    file:
+      path: /var/run/php
+      state: directory
+      owner: www-data
+      group: www-data
+    tags: php-fpm
+
+  - name: Install default pool configuration (Debian) {{ debian_package[php_set_version]['service_name'] }}
+    template:
+      src: "pool/pool.conf.{{ ansible_os_family | lower }}.j2"
+      dest: "{{ debian_package[php_version]['destination'] }}"
+    tags: php-fpm
+    notify:
+      - restart php-fpm for Debian
+
+  - name: Remove php repository list
+    file:
+      path: /etc/apt/sources.list.d/php_repo.list
+      state: absent
+    tags: php-fpm

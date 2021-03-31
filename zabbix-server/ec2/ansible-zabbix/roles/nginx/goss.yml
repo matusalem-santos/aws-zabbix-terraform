@@ -1,0 +1,43 @@
+---
+
+  package:
+    nginx:
+      installed: true
+    openssl:
+      installed: true
+
+  port:
+    tcp:80:
+      listening: true
+      ip:
+        - 0.0.0.0
+    tcp:443:
+      listening: true
+      ip:
+        - 0.0.0.0
+
+  http:
+    https://localhost/nginx_status:
+      status: 200
+      no-follow-redirects: false
+      allow-insecure: true
+    http://localhost/nginx_status:
+      status: 200
+      no-follow-redirects: false
+      allow-insecure: true
+
+  service:
+    nginx:
+      enabled: true
+      running: true
+
+  file:
+    /etc/nginx/conf.d/default.conf:
+      exists: true
+      contains:
+        - /listen.*80;/
+        - /server_name.*_;/
+    /etc/nginx/conf.d/virtual.conf:
+      exists: false
+    /etc/nginx/conf.d/ssl.conf:
+      exists: false

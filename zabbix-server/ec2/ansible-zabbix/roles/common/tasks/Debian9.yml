@@ -1,0 +1,21 @@
+---
+  - name: configure official repositories
+    template:
+      src: sources.list.j2
+      dest: /etc/apt/sources.list
+      mode: 0644
+      owner: root
+      group: root
+    register: apt_repo
+    tags: common
+
+  - name: Update cache and packages ({{ ansible_distribution }})
+    apt:
+      update_cache: yes
+      upgrade: full
+    tags: common
+
+  - name: Set NTP Service name for restarting
+    set_fact: 
+      ntp_service: ntp
+...

@@ -1,0 +1,21 @@
+---
+
+nginx_version: 1.12.0
+
+nginx_server_name: example.local
+nginx_server_root: /usr/share/nginx/html
+
+nginx_ssl_enabled: false
+nginx_ssl_path: /etc/nginx/ssl
+
+nginx_proxy_enabled: false
+nginx_proxy_host: localhost
+nginx_proxy_port: 3000
+
+nginx_php_enabled: false
+
+nginx_redirect_zabbix: false
+
+packages:
+  RedHat:
+    - "nginx"

@@ -1,0 +1,13 @@
+---
+
+RedHat_package:
+  CentOS:
+    destination: "/etc/php-fpm.d/www.conf"
+  Amazon:
+    destination: "/etc/php-fpm.d/www.conf"
+
+packages:
+  CentOS:
+    - php-fpm
+  Amazon:
+    - php-fpm

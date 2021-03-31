@@ -1,0 +1,21 @@
+---
+  - name: Enable epel-release
+    yum:
+      name: epel-release
+      state: latest
+    tags: common
+
+  - name: Update cache and packages ({{ ansible_distribution }})
+    yum:
+      name: "*"
+      state: latest
+      exclude: ansible*
+    tags: common
+
+  - name: Disable SELinux ({{ ansible_os_family }})
+    selinux:
+      state: disabled
+    when: ansible_virtualization_type != "docker"
+    tags: common
+
+...

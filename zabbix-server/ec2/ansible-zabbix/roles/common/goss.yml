@@ -1,0 +1,38 @@
+---
+  file:
+    /etc/localtime:
+      exists: true
+      filetype: symlink
+      linked-to: /usr/share/zoneinfo/America/Sao_Paulo
+
+  package:
+    {{ if eq .Vars.ansible_facts.ansible_distribution "CentOS" }}
+    epel-release:
+      installed: true
+    {{ end }}
+    {{ if eq .Vars.ansible_facts.ansible_distribution "Amazon" }}
+    epel-release:
+      installed: true
+    {{ end }}
+    htop:
+      installed: true
+    git:
+      installed: true
+    sysstat:
+      installed: true
+    telnet:
+      installed: true
+    ntp:
+      installed: true
+  
+  service:
+    {{ if eq .Vars.ansible_facts.ansible_os_family "RedHat" }}
+    ntpd:
+      enabled: true
+      running: true
+    {{ else }}
+    ntp:
+      enabled: true
+      running: true
+    {{ end }}
+...

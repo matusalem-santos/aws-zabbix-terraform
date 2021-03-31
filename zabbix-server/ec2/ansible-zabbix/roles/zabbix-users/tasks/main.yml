@@ -1,0 +1,69 @@
+---
+  - name: Install base Packages
+    package:
+      name:
+        - python3
+        - python-pip
+        - ansible
+        - git
+      state: latest
+
+  - name: Upgrade pip
+    shell: /usr/bin/python3 -m pip install --upgrade pip
+
+  - name: Install modulos python
+    pip:
+      name:
+        - boto3
+        - pyzabbix
+        - zabbix-api
+        - paramiko
+      executable: pip3
+
+  - name: Install modulos python3
+    pip:
+      name:
+        - boto3
+        - pyzabbix
+        - zabbix-api
+        - paramiko
+
+  - name: Get authentication token Zabbix
+    uri:
+      url: '{{ url_zabbix_api }}'
+      body_format: json
+      headers:
+        Content-type: application/json
+      body: 
+        jsonrpc: "2.0"
+        method: user.login
+        id: 1
+        auth: null
+        params: 
+          user: "Admin"
+          password: "zabbix"
+          userData: true
+      return_content: yes
+    register: auth
+
+  - debug:
+      msg: '{{ auth | json_query("json.result") }}'
+      
+  - name: Mudar senha do usuario logado
+    uri:
+      url: '{{ url_zabbix_api }}'
+      body_format: json
+      headers:
+        Content-type: application/json
+      body: 
+        jsonrpc: "2.0"
+        method: user.update
+        id: 1
+        auth: '{{ auth.json.result.sessionid }}'
+        params:
+          userid: '{{ auth.json.result.userid }}'
+          passwd: '{{ pass_admin }}'
+    register: output 
+     
+  - debug:
+      msg: '{{ output.json }}'

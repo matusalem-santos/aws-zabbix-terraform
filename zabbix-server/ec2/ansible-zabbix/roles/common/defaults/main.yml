@@ -1,0 +1,78 @@
+---
+packages:
+  Debian:
+    - htop
+    - git
+    - sysstat
+    - telnet
+    - apt-transport-https
+    - vim
+    - screen
+    - dirmngr
+    - curl
+    - netcat-traditional
+    - tcpdump
+    - dstat
+    - ntp
+    - wget
+
+  RedHat:
+    - htop
+    - git
+    - sysstat
+    - telnet
+    - libselinux-python
+    - setools
+    - selinux-policy
+    - selinux-policy-targeted
+    - libselinux-utils
+    - vim
+    - screen
+    - curl
+    - nc
+    - tcpdump
+    - dstat
+    - ntp
+    - wget
+    - python36
+    - python36-pip
+    - MySQL-python
+    - python-pip
+    - python-devel
+    - centos-release-scl
+
+  Amazon:
+    - htop
+    - git
+    - sysstat
+    - telnet
+    - libselinux-python
+    - setools
+    - selinux-policy
+    - selinux-policy-targeted
+    - libselinux-utils
+    - vim
+    - screen
+    - curl
+    - nc
+    - tcpdump
+    - dstat
+    - ntp
+    - wget
+
+ntp_servers:
+  - a.st1.ntp.br
+  - b.st1.ntp.br
+  - c.st1.ntp.br
+  - d.st1.ntp.br
+  - gps.ntp.br
+  - a.ntp.br
+  - b.ntp.br
+  - c.ntp.br
+
+timezone: America/Sao_Paulo
+ntp_service: ntpd
+
+set_hostname: true
+server_hostname: "{{ ansible_hostname }}"
+...

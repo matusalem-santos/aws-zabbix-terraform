@@ -1,0 +1,5 @@
+---
+url_zabbix_api: "http://localhost/api_jsonrpc.php"
+
+
+

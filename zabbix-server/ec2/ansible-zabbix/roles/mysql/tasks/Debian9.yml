@@ -1,0 +1,33 @@
+
+---
+
+  - name: Install public key from repo.mysql.com
+    apt_key:
+      url: http://repo.mysql.com/RPM-GPG-KEY-mysql
+      state: present
+    tags: mysql
+
+  - name: Install MySQL apt_repository
+    apt_repository:
+      repo: deb http://repo.mysql.com/apt/debian {{ ansible_distribution_release }} {{ mysql_release_debian }} main
+      state: present
+      update_cache: yes
+    tags: mysql
+
+  - name: Install MySQL packages
+    package:
+      name: "{{ item }}"
+    with_items:
+      - "{{ mysql_packages[ansible_os_family] }}"
+    notify:
+      - restart mysql
+      - restart mysql docker
+    tags: mysql
+
+  - name: Copy MySQL template configuration to host
+    template:
+      src: etc/mysql/my.cnf.j2
+      dest: /etc/mysql/conf.d/mysql.cnf
+    notify:
+      - restart mysql debian
+    tags: mysql

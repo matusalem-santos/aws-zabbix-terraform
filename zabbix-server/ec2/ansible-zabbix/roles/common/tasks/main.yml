@@ -1,0 +1,56 @@
+---
+  - name: Set hostname {{ server_hostname }}
+    hostname:
+      name: "{{ server_hostname }}"
+    when: (ansible_virtualization_type != "docker")
+    tags: common
+
+  - name: Configure /etc/hosts
+    template:
+      src: etc/hosts
+      dest: /etc/hosts
+    when: (ansible_virtualization_type != "docker")
+    tags: common
+
+  - name: Set Localtime
+    file:
+      src: "/usr/share/zoneinfo/{{ timezone }}"
+      dest: /etc/localtime
+      state: link
+      force: yes
+    tags: common
+
+  - name: Including tasks for {{ ansible_distribution }} {{ ansible_distribution_major_version }}
+    include_tasks: "{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+
+  - name: Install default packages
+    package:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - "{{ packages[ansible_os_family] }}"
+    ignore_errors: yes
+    tags: common
+
+  - name: Copy the ntp.conf template file
+    template: 
+      src: ntp.conf.j2
+      dest: /etc/ntp.conf
+      owner: root
+      mode: 0644
+    notify: 
+      - restart ntp
+    tags: common
+
+  - name: Install pip packages
+    pip:
+      name:
+          - pymysql
+      executable: pip-3
+
+  - name: Install Pip Packages  
+    pip:
+      name: 
+        - PyZabbix
+        - jmespath
+...

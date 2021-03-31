@@ -1,0 +1,4 @@
+---
+  - name: Include Specific Version for Amazon
+    include_tasks: "{{ ansible_distribution }}{{ ansible_distribution_version }}.yml"
+...

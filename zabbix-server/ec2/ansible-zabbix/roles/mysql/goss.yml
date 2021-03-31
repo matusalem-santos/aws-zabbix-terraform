@@ -1,0 +1,19 @@
+---
+
+  package:
+    mysql-community-server:
+      installed: true
+
+  {{ if eq .Vars.ansible_facts.ansible_os_family "RedHat" }}
+  service:
+    mysqld:
+      running: true
+      enabled: true
+  {{ end }}
+
+  {{ if eq .Vars.ansible_facts.ansible_os_family "Debian" }}
+  service:
+    mysql:
+      running: true
+      enabled: true
+  {{ end }}

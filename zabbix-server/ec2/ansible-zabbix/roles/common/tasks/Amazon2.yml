@@ -1,0 +1,22 @@
+---
+  - name: Enable epel-release
+    yum:
+      name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+      validate_certs: False
+      state: present
+
+  - name: Update cache and packages ({{ ansible_distribution }})
+    yum:
+      name: "*"
+      state: latest
+      exclude: 
+        - ansible*
+        - ruby*
+    tags: common
+
+  # - name: Disable SELinux ({{ ansible_distribution }})
+  #   selinux:
+  #     state: disabled
+  #   when: ansible_virtualization_type != "docker"
+  #   tags: common
+...

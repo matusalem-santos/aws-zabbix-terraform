@@ -1,0 +1,13 @@
+---
+- hosts: all
+  vars:
+    zbx_db_user: "zabbix"
+    zbx_db_name: "zabbix"
+    mysql_root_password: "Root@369"
+    url_zabbix_api: "http://localhost/api_jsonrpc.php"
+    user_zabbix: "Admin"
+    ansible_ssh_common_args: -o StrictHostKeyChecking=no -o ProxyCommand='sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"'
+
+  become: yes
+  roles:
+    - zabbix-users

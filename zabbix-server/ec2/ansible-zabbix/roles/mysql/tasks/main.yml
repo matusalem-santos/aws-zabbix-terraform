@@ -1,0 +1,66 @@
+---
+
+  - name: Install MySQL repository (Centos 7)
+    yum_repository:
+      name: RepoMYSQL
+      description: MYSQL Packages for Enterprise Linux 7
+      baseurl: http://repo.mysql.com/yum/{{mysql_release_redhat}}/el/7/{{ ansible_architecture }}/
+      gpgkey: http://repo.mysql.com/RPM-GPG-KEY-mysql
+      gpgcheck: yes
+    tags: mysql
+
+  - name: Install MySQL packages
+    package:
+      name: "{{ item }}"
+      update_cache: yes
+    with_items:
+      - "{{ mysql_packages[ansible_distribution] }}"
+    notify:
+      - restart mysql
+    tags: mysql
+
+  - name: Start MySQL and enable on boot
+    service:
+      name: mysqld
+      state: started
+      enabled: yes
+
+  - name: Find MySQL temporary password 
+    shell: "grep temporary.*root@localhost /var/log/mysqld.log | sed 's/.*root@localhost: //' | tail -n 1"
+    register: mysql_root_password_temp
+
+  - name: Debug MySQL temporary password
+    debug: 
+      msg: "{{ mysql_root_password_temp.stdout }}"
+
+  - name: Detect and properly set root password
+    stat:
+      path: /root/.my.cnf
+    register: r
+
+  - mysql_user:
+      name: root
+      password: "{{ mysql_root_password }}"
+    when: r.stat.exists==True
+
+  - name: Set new password from temporary password
+    shell: 'mysql -e "SET PASSWORD = PASSWORD(''{{ mysql_root_password }}'');" --connect-expired-password -uroot -p"{{ mysql_root_password_temp.stdout }}"'
+    when: r.stat.exists==False
+
+  - name: Create `/root/.my.cnf`  with root password credentials
+    template:
+      src:  user.root.my.cnf.j2
+      dest: /root/.my.cnf
+      owner: root
+      mode: 0600
+      force: yes
+
+  - name: Remove anonymous MySQL user accounts
+    mysql_user:
+      name: ''
+      state: absent
+
+  - name: Remove MySQL database test
+    mysql_db:
+      name: test
+      state: absent

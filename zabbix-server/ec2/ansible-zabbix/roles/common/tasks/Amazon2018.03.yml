@@ -1,0 +1,23 @@
+---
+  - name: Enable EPEL repo
+    ini_file:
+      dest: /etc/yum.repos.d/epel.repo
+      section: epel
+      option: enabled
+      value: 1
+
+  - name: Update cache and packages ({{ ansible_distribution }})
+    yum:
+      name: "*"
+      state: latest
+      exclude: 
+        - ansible*
+        - ruby*
+    tags: common
+
+  - name: Disable SELinux ({{ ansible_distribution }})
+    selinux:
+      state: disabled
+    when: ansible_virtualization_type != "docker"
+    tags: common
+...

@@ -1,0 +1,72 @@
+---
+  - name: Check if php is already installed ({{ansible_distribution}})
+    shell: >
+      yum list installed | grep php | awk '{print $1}'
+    args:
+      warn: false
+    register: php_installed_version_centos
+    tags:
+      - php-fpm
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4"
+
+  - name: trying to remove old versions ({{ansible_distribution}})
+    package:
+      name: "{{ item }}"
+      state: absent
+    with_items:
+      - "{{ php_installed_version_centos.stdout.splitlines() | list }}"
+    ignore_errors: true
+    tags:
+      - php-fpm
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4"
+
+  - name: Install PHP remi repository 
+    yum_repository:
+      name: remi
+      description: Remi's RPM repository for Enterprise Linux 7 - $basearch
+      mirrorlist: "http://cdn.remirepo.net/enterprise/7/remi/mirror"
+      gpgkey: https://rpms.remirepo.net/RPM-GPG-KEY-remi
+      gpgcheck: yes
+    tags:
+      - php-fpm
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4"
+
+  - name: Install remi
+    yum: 
+      name: http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+      state: present
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4" 
+
+  - name: Enable PHP-7.4 ({{ansible_distribution}})
+    shell: yum-config-manager --enable remi-php74
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4"
+
+  - name: Enable PHP-7.4 ({{ansible_distribution}})
+    shell: amazon-linux-extras enable php7.4
+    when: ansible_architecture == "aarch64" 
+
+  - name: clean metadata ({{ansible_distribution}})
+    shell: yum clean metadata
+    when: ansible_architecture == "aarch64" 
+
+  - name: Install php packages
+    package:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - "{{ packages[ansible_distribution] }}"
+    tags:
+      - php-fpm
+    notify:
+      - restart php-fpm
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4"
+
+  - name: Install default pool configuration ({{ansible_distribution}})
+    template:
+      src: "pool/pool.conf.{{ ansible_os_family | lower }}.j2"
+      dest: "{{ RedHat_package[ansible_distribution]['destination'] }}"
+    tags:
+      - php-fpm
+    notify:
+      - restart php-fpm
+    when: ansible_architecture == "x86_64" and zabbix_version == "4.4"

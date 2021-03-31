@@ -1,0 +1,30 @@
+---
+
+  - name: Install MySQL repository (Centos {{ ansible_distribution_version[:1] }})
+    yum_repository:
+      name: RepoMYSQL
+      description: MYSQL Packages for Enterprise Linux {{ ansible_distribution_version[:1] }}
+      baseurl: http://repo.mysql.com/yum/{{mysql_release_redhat}}/el/{{ ansible_distribution_version[:1] }}/{{ ansible_architecture }}/
+      gpgkey: http://repo.mysql.com/RPM-GPG-KEY-mysql
+      gpgcheck: yes
+    tags: mysql
+
+  - name: Install MySQL packages
+    package:
+      name: "{{ item }}"
+      update_cache: yes
+    with_items:
+      - "{{ mysql_packages[ansible_distribution] }}"
+    notify:
+      - restart mysql docker
+      - restart mysql
+    tags: mysql
+
+  - name: Copy MYSQL template configuration to host
+    template:
+      src: etc/mysql/my.cnf.j2
+      dest: /etc/my.cnf
+    notify:
+      - restart mysql docker
+      - restart mysql
+    tags: mysql

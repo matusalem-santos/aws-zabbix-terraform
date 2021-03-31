@@ -1,0 +1,6 @@
+---
+
+dependencies:
+  - { role: common, tags: zabbix-server}
+  - { role: mysql, tags: zabbix-server }
+  - { role: nginx, nginx_php_enabled: true, nginx_redirect: true, nginx_server_root: /usr/share/zabbix/, tags: zabbix-server }
